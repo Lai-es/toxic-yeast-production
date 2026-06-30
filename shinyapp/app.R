@@ -51,28 +51,28 @@ ui <- fluidPage(
   
   sidebarLayout(
     sidebarPanel(
+      h4("Model Diagram"),
+      tags$img(src = "model_diagram.png", style = "max-width: 100%; height: auto;"),
+      
       h4("Model Parameters"),
-      sliderInput("r", "Growth rate (r):", min = 0.01, max = 2, value = 0.5, step = 0.01),
+      sliderInput("r", "Growth rate (r):", min = 0.01, max = 1, value = 0.5, step = 0.01),
       sliderInput("K", "Carrying capacity (K):", min = 10, max = 500, value = 100, step = 10),
-      sliderInput("g", "Production rate (g):", min = 0, max = 2, value = 0.05, step = 0.01),
-      sliderInput("d", "Toxicity susceptability (d):", min = 0, max = 1, value = 0.1, step = 0.001),
+      sliderInput("g", "Production rate (g):", min = 0, max = 1, value = 0.05, step = 0.01),
+      sliderInput("d", "Toxicity susceptability (d):", min = 0, max = 1, value = 0.1, step = 0.01),
       sliderInput("z", "Product decay percentage (z):", min = 0, max = 1, value = 0.1, step = 0.01),
       
-      hr(),
-      h4("Initial Conditions"),
       numericInput("Y0", "Initial yeast population (Y0):", value = 10, min = 0),
-      numericInput("P0", "Initial product concentration (P0):", value = 0, min = 0),
-      
-      hr(),
-      h4("Simulation Settings"),
-      sliderInput("tmax", "Simulation time:", min = 10, max = 500, value = 150, step = 10),
-      
-      hr(),
-      h4("Current Equilibrium"),
-      verbatimTextOutput("eqText")
+      numericInput("P0", "Initial product amount (P0):", value = 0, min = 0),
     ),
     
     mainPanel(
+      wellPanel(
+        h4("Current Equilibrium"),
+        fluidRow(
+          column(6, verbatimTextOutput("eqYText")),
+          column(6, verbatimTextOutput("eqPText"))
+        )
+      ),
       tabsetPanel(
         tabPanel(
         "Time Series",
@@ -81,7 +81,9 @@ ui <- fluidPage(
           "Solid lines: simulated trajectories. Dashed lines: predicted equilibrium ",
           "Y* and P* for the current parameter set, shown as a convergence check.",
           style = "color: #888888; margin-left: 40px; margin-right: 40px; margin-top: 10px;"
-        )
+        ),
+        sliderInput("tmax", "Simulation time:", min = 10, max = 500, value = 150, step = 10, width = "100%"),
+        
       ),
         tabPanel(
           "Equilibrium vs g",
@@ -101,10 +103,7 @@ ui <- fluidPage(
             "initial condition, star marks the predicted equilibrium.",
             style = "color: #888888; margin-left: 40px; margin-right: 40px; margin-top: 10px;"),
         )
-      ),
-      hr(),
-      h4("Model Diagram"),
-      tags$img(src = "model_diagram.png", style = "max-width: 70%; height: auto;")
+      )
     )
   )
 )
@@ -130,9 +129,11 @@ server <- function(input, output, session) {
     compute_equilibrium(r = input$r, K = input$K, g = input$g, d = input$d, z = input$z)
   })
   
-  output$eqText <- renderText({
-    eq <- currentEq()
-    paste0("Y* = ", round(eq$Y_star, 2), "\nP* = ", round(eq$P_star, 2))
+  output$eqYText <- renderText({
+    paste0("Y* = ", round(currentEq()$Y_star, 3))
+  })
+  output$eqPText <- renderText({
+    paste0("P* = ", round(currentEq()$P_star, 3))
   })
   
   # --- Time series plot, with equilibrium convergence check ---
@@ -148,7 +149,7 @@ server <- function(input, output, session) {
       coord_cartesian(xlim = c(0, NA), ylim = c(0, NA), expand = FALSE) +
       scale_color_manual(values = c("Yeast cells (Y)" = "#1b9e77", "Product (P)" = "#d95f02")) +
       labs(
-        x = "Time", y = "Population / Concentration", color = NULL,
+        x = "Time", y = "Yeast population / Product amount", color = NULL,
         title = "Time Series with Predicted Equilibria (dashed)"
       ) +
       theme_minimal(base_size = 14) +
@@ -219,7 +220,7 @@ server <- function(input, output, session) {
       geom_point(aes(x = eq$Y_star, y = eq$P_star), color = "red", size = 4, shape = 8) +
       coord_cartesian(xlim = c(0, NA), ylim = c(0, NA), expand = FALSE) +
       labs(
-        x = "Yeast population (Y)", y = "Toxin concentration (P)",
+        x = "Yeast population (Y)", y = "Toxin amount (P)",
         title = "Phase Plane: Trajectory (triangle = start, star = equilibrium)"
       ) +
       theme_minimal(base_size = 14)
