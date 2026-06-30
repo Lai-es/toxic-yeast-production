@@ -85,8 +85,15 @@ ui <- fluidPage(
         sliderInput("tmax", "Simulation time:", min = 10, max = 500, value = 150, step = 10, width = "100%"),
         
       ),
-        tabPanel(
-          "Equilibrium vs g",
+      tabPanel(
+        "Phase Plane",
+        plotOutput("phasePlanePlot", height = "500px"),
+        p("Trajectory of (Y(t), P(t)) for the current parameters. Triangle marks the ",
+          "initial condition, star marks the predicted equilibrium.",
+          style = "color: #888888; margin-left: 40px; margin-right: 40px; margin-top: 10px;"),
+      ),
+      tabPanel(
+          "Equilibria vs Production rate",
           fluidRow(
             column(6, plotOutput("eqYPlot", height = "450px")),
             column(6, plotOutput("eqPPlot", height = "450px"))
@@ -96,12 +103,9 @@ ui <- fluidPage(
             "and point mark the current g.",
             style = "color: #888888; margin-left: 40px; margin-right: 40px; margin-top: 10px;")
         ),
-        tabPanel(
-          "Phase Plane",
-          plotOutput("phasePlanePlot", height = "500px"),
-          p("Trajectory of (Y(t), P(t)) for the current parameters. Triangle marks the ",
-            "initial condition, star marks the predicted equilibrium.",
-            style = "color: #888888; margin-left: 40px; margin-right: 40px; margin-top: 10px;"),
+      tabPanel(
+        "Equilibria vs Growth rate",
+        
         )
       )
     )
@@ -143,11 +147,11 @@ server <- function(input, output, session) {
     
     ggplot(df, aes(x = time)) +
       geom_line(aes(y = Y, color = "Yeast cells (Y)"), linewidth = 1) +
-      geom_line(aes(y = P, color = "Product (P)"), linewidth = 1) +
+      geom_line(aes(y = P, color = "Product amount (P)"), linewidth = 1) +
       geom_hline(yintercept = eq$Y_star, linetype = "dashed", color = "#1b9e77", linewidth = 0.7) +
       geom_hline(yintercept = eq$P_star, linetype = "dashed", color = "#d95f02", linewidth = 0.7) +
       coord_cartesian(xlim = c(0, NA), ylim = c(0, NA), expand = FALSE) +
-      scale_color_manual(values = c("Yeast cells (Y)" = "#1b9e77", "Product (P)" = "#d95f02")) +
+      scale_color_manual(values = c("Yeast cells (Y)" = "#1b9e77", "Product amount (P)" = "#d95f02")) +
       labs(
         x = "Time", y = "Yeast population / Product amount", color = NULL,
         title = "Time Series with Predicted Equilibria (dashed)"
