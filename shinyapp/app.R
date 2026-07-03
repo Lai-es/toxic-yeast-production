@@ -153,13 +153,16 @@ ui <- fluidPage(
     # ------ Main panel: equilibrium display + tab plots -----
     mainPanel(
       
-      # Always-visible equilibrium values
+      # Always-visible equilibrium values and oscillation indicator
       wellPanel(
         h4("Current Equilibrium"),
         fluidRow(
           column(6, verbatimTextOutput("eqYText")),
           column(6, verbatimTextOutput("eqPText"))
-        )
+        ),
+        h4("Oscillations"),
+        verbatimTextOutput("oscText"),
+        p("Oscillations present if z < 4 * r", style = "color: #666666;")
       ),
       
       tabsetPanel(
@@ -287,7 +290,14 @@ server <- function(input, output, session) {
   output$eqPText <- renderText({
     paste0("P* = ", round(currentEq()$P_star, 3))
   })
-  
+  # ---- Oscillation display (same well panel)
+  output$oscText <- renderText({
+    if (input$z < 4 * input$r) {
+      "Presence: Yes"
+    } else {
+      "Presence: No"
+    }
+  })
   # ============================================================
   # Time series plot
   # ============================================================
