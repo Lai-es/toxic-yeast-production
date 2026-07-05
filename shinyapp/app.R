@@ -133,7 +133,6 @@ ui <- fluidPage(
       tags$img(src = "model_diagram.png",
                style = "max-width: 100%; height: auto;"),
       
-      hr(),
       h4("Model Parameters"),
       sliderInput("r", "Replication rate (r):",
                   min = 0.01, max = 1, value = 0.5, step = 0.01),
@@ -144,7 +143,6 @@ ui <- fluidPage(
       sliderInput("z", "Product decay rate (z):",
                   min = 0.01, max = 1, value = 0.5, step = 0.01),
       
-      hr(),
       h4("Initial Conditions"),
       numericInput("Y0", "Initial yeast population:", value = 10, min = 0),
       numericInput("P0", "Initial product amount:",   value = 0,  min = 0)
@@ -157,12 +155,12 @@ ui <- fluidPage(
       wellPanel(
         h4("Current Equilibrium"),
         fluidRow(
-          column(6, verbatimTextOutput("eqYText")),
-          column(6, verbatimTextOutput("eqPText"))
+          column(6, verbatimTextOutput("eqYText"), p("Y* = rz / dg", style = CAPTION_STYLE)),
+          column(6, verbatimTextOutput("eqPText"), p("P* = r / d", style = CAPTION_STYLE))
         ),
         h4("Oscillations"),
         verbatimTextOutput("oscText"),
-        p("Oscillations present if z < 4 * r", style = "color: #666666;")
+        p("Oscillations present if z < 4r", style = CAPTION_STYLE)
       ),
       
       tabsetPanel(
@@ -176,7 +174,7 @@ ui <- fluidPage(
             "shown as a convergence check.",
             style = CAPTION_STYLE),
           sliderInput("tmax", "Simulation time:",
-                      min = 10, max = 300, value = 150,
+                      min = 10, max = 200, value = 80,
                       step = 10, width = "100%")
         ),
         
@@ -190,7 +188,17 @@ ui <- fluidPage(
             style = CAPTION_STYLE)
         ),
         
-        # ---- Tab 3: Equilibria vs Parameters (nested tabs) ----
+        # ---- Tab 3: Vector field ----
+        tabPanel(
+          "Vector Field",
+          plotOutput("vectorFieldPlot", height = "500px"),
+          p("Arrows show the direction of the system at each point in Y-P space.",
+            "All arrows are normalized to the same length (pure direction field).",
+            "Nullcline intersections mark the predicted equilibria (red star).",
+            style = CAPTION_STYLE)
+        ),
+        
+        # ---- Tab 4: Equilibria vs Parameters (nested tabs) ----
         tabPanel(
           "Equilibria vs Parameters",
           tabsetPanel(
@@ -319,7 +327,7 @@ server <- function(input, output, session) {
       ) +
       labs(x = "Time", y = "Yeast population / Product amount",
            color = NULL,
-           title = "Time Series with Predicted Equilibria (dashed)") +
+           title = "Time Series") +
       theme_minimal(base_size = 14) +
       theme(legend.position = "top")
   })
@@ -341,8 +349,73 @@ server <- function(input, output, session) {
                  color = "red", size = 4, shape = 8) +
       coord_cartesian(xlim = c(0, NA), ylim = c(0, NA), expand = FALSE) +
       labs(x = "Yeast population (Y)", y = "Product amount (P)",
-           title = "Phase Plane: Trajectory (triangle = start, star = equilibrium)") +
+           title = "Phase Plane: Trajectory") +
       theme_minimal(base_size = 14)
+  })
+  
+  # ============================================================
+  # Vector field plot
+  # ============================================================
+  output$vectorFieldPlot <- renderPlot({
+    eq <- currentEq()
+    
+    # Grid spans 0 to 2x the equilibrium in both axes,
+    # so the equilibrium sits roughly centered in the field
+    n_grid <- 18
+    y_vals <- seq(0.01, eq$Y_star * 2, length.out = n_grid)
+    p_vals <- seq(0.01, eq$P_star * 2, length.out = n_grid)
+    grid   <- expand.grid(Y = y_vals, P = p_vals)
+    
+    # Evaluate the ODE at each grid point
+    grid$dY <- input$r * grid$Y - input$d * grid$P * grid$Y
+    grid$dP <- input$g * grid$Y - input$z * grid$P
+    
+    # Normalize arrows to uniform length for a pure direction field,
+    # then scale by a fixed step proportional to grid spacing
+    magnitude  <- sqrt(grid$dY^2 + grid$dP^2)
+    step_size  <- (eq$Y_star * 2) / n_grid * 0.7
+    grid$dY_n  <- (grid$dY / magnitude) * step_size
+    grid$dP_n  <- (grid$dP / magnitude) * step_size
+    
+    x_max <- eq$Y_star * 2 * 1.03
+    y_max <- eq$P_star * 2 * 1.03
+    
+    ggplot(grid, aes(x = Y, y = P)) +
+      geom_segment(
+        aes(xend = Y + dY_n, yend = P + dP_n),
+        arrow = arrow(length = unit(0.15, "cm"), type = "closed"),
+        color = "gray50", linewidth = 0.4
+      ) +
+      # Y-nullcline: P = r/d
+      geom_hline(aes(yintercept = input$r / input$d, color = "Y-nullclines (dY/dt = 0)"),
+                 linetype = "dashed", linewidth = 0.8) +
+      # Y-nullcline: Y = 0
+      geom_vline(aes(xintercept = 0, color = "P-nullclines (dP/dt = 0)"), linetype = "dashed", 
+                 linewidth = 0.8) +
+      # P-nullcline: P = 0
+      geom_hline(aes(yintercept = 0, color = "Y-nullclines (dY/dt = 0)"), linetype = "dashed", 
+                 linewidth = 0.8) +
+      # P-nullcline: P = (g/z)*Y
+      geom_abline(aes(slope = input$g / input$z, intercept = 0,
+                      color = "P-nullclines (dP/dt = 0)"),
+                  linetype = "dashed", linewidth = 0.8) +
+      # Equilibrium points
+      geom_point(aes(x = eq$Y_star, y = eq$P_star),
+                 color = "red", size = 4, shape = 8,
+                 inherit.aes = FALSE) +
+      geom_point(aes(x = 0, y = 0),
+                 color = "red", size = 4, shape = 8,
+                 inherit.aes = FALSE) +
+      coord_cartesian(xlim = c(-0.05, x_max), ylim = c(-0.05, y_max), expand = FALSE) +
+      scale_color_manual(values = c(
+        "Y-nullclines (dY/dt = 0)" = "#1b9e77",
+        "P-nullclines (dP/dt = 0)" = "#d95f02"
+      )) +
+      labs(x = "Yeast cells (Y)", y = "Product amount (P)",
+           color = NULL,
+           title = "Vector Field with Nullclines") +
+      theme_minimal(base_size = 14) +
+      theme(legend.position = "top")
   })
   
   # ============================================================
