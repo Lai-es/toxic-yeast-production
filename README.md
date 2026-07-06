@@ -7,7 +7,7 @@ Watch a simulation of the model with custom parameters in the [shiny app](https:
 
 ## AI-usage
 
-See the [AI-declaration](ai usage/ai_usage.pdf) for a comprehensive list where AI was used in this project
+See the [AI-declaration](ai usage/AI_usage.pdf) for a comprehensive list where AI was used in this project
 
 0 < g <= 1 | g = probability that each cell produces a product at each timepoint "production/generation rate"
 
