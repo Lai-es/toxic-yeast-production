@@ -1,5 +1,7 @@
-# toxic-yeast-production
+# Mathematical Model
 This project analyzes the mathematical model of yeast cells that grow linearly but die by their produced product. Equilibria and stability conditions are computed to gain insights about growth/regulation of the yeast cells.
+
+This is a final project for a master-course called "Computational Ecology II"
 
 ![](shinyapp/www/model_diagram.png)
 
@@ -7,7 +9,7 @@ Watch a simulation of the model with custom parameters in the [shiny app](https:
 
 ## AI-usage
 
-See the [AI-declaration](ai usage/AI_usage.pdf) for a comprehensive list where AI was used in this project
+See the [AI-declaration](ai_usage/AI_usage.pdf) for a comprehensive list where AI was used in this project
 
 0 < g <= 1 | g = probability that each cell produces a product at each timepoint "production/generation rate"
 
